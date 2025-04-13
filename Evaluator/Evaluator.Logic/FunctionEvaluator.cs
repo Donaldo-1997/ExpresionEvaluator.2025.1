@@ -1,4 +1,6 @@
-﻿namespace Evaluator.Logic;
+﻿using System.Globalization;
+
+namespace Evaluator.Logic;
 
 public class FunctionEvaluator
 {
@@ -8,7 +10,7 @@ public class FunctionEvaluator
         return Calculate(postfix);
     }
 
-    private static double Calculate(string postfix)
+    private static double Calculate(Queue<string> postfix)
     {
         var stack = new Stack<double>();
         foreach (var item in postfix)
@@ -21,33 +23,41 @@ public class FunctionEvaluator
             }
             else
             {
-                stack.Push(char.GetNumericValue(item));
+                stack.Push(double.Parse(item, CultureInfo.InvariantCulture));
             }
         }
         return stack.Pop();
     }
 
-    private static double Result(double operator1, char item, double operator2)
+    private static double Result(double operator1, string item, double operator2)
     {
         return item switch
         {
-            '+' => operator1 + operator2,
-            '-' => operator1 - operator2,
-            '*' => operator1 * operator2,
-            '/' => operator1 / operator2,
-            '^' => Math.Pow(operator1, operator2),
+            "+" => operator1 + operator2,
+            "-" => operator1 - operator2,
+            "*" => operator1 * operator2,
+            "/" => operator1 / operator2,
+            "^" => Math.Pow(operator1, operator2),
             _ => throw new Exception("Invalid expresion"),
         };
     }
 
-    private static string ToPostfix(string infix)
+    private static Queue<string> ToPostfix(string infix)
     {
         var stack = new Stack<char>();
-        var postfix = string.Empty;
+        var digit = string.Empty;
+        var postfix = new Queue<string>();
+
         foreach (var item in infix)
         {
             if (IsOperator(item))
             {
+                if(digit != "")
+                {
+                    postfix.Enqueue(digit);
+                    digit = string.Empty;
+                }
+
                 if (stack.Count == 0)
                 {
                     stack.Push(item);
@@ -58,7 +68,9 @@ public class FunctionEvaluator
                     {
                         do
                         {
-                            postfix += stack.Pop();
+                            digit += stack.Pop();
+                            postfix.Enqueue(digit);
+                            digit = string.Empty;
                         } while (stack.Peek() != '(');
                         stack.Pop();
                     }
@@ -70,7 +82,9 @@ public class FunctionEvaluator
                         }
                         else
                         {
-                            postfix += stack.Pop();
+                            digit += stack.Pop();
+                            postfix.Enqueue(digit);
+                            digit = string.Empty;
                             stack.Push(item);
                         }
                     }
@@ -78,13 +92,22 @@ public class FunctionEvaluator
             }
             else
             {
-                postfix += item;
+                digit += item;
             }
         }
+        
+        if(digit != "")
+        {
+            postfix.Enqueue(digit);
+            digit = string.Empty;
+        }
+
         do
         {
-            postfix += stack.Pop();
+            digit += stack.Pop();
+            postfix.Enqueue(digit);
         } while (stack.Count > 0);
+        
         return postfix;
     }
 
@@ -117,4 +140,5 @@ public class FunctionEvaluator
     }
 
     private static bool IsOperator(char item) => "()^*/+-".IndexOf(item) >= 0;
+    private static bool IsOperator(string item) => "()^*/+-".IndexOf(item) >= 0;
 }
